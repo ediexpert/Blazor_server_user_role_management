@@ -5,6 +5,7 @@
 @inject UserManager<IdentityUser> userManager
 
 <h3>Users</h3>
+<MessageComponent IsError=isError Message="@msg"></MessageComponent>
 @if (!string.IsNullOrEmpty(messageSuccess))
 {
     <p style="color: green">@messageSuccess</p>
@@ -51,6 +52,7 @@
                 <td>@user.UserName</td>
                 <td>@user.Email</td>
                 <td>
+                    <a href="/user/@user.UserName">Edit</a>
                     <button class="btn btn-primary" @onclick="() => EditUser(user.Id)">Edit</button>
                     <button class="btn btn-danger" @onclick="() => DeleteUser(user.Id)">Delete</button>
                 </td>
@@ -64,6 +66,8 @@
     string messageError = string.Empty;
     string name, email, password;
     IEnumerable<IdentityUser> users = Enumerable.Empty<IdentityUser>();
+    bool isError = false;
+    string msg = null;
 
     protected override Task OnInitializedAsync()
     {
@@ -80,8 +84,6 @@
         if (user != null)
         {
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
-            //var resetUrl = NavigationManager.ToAbsoluteUri($"/resetpassword?userId={user.Id}&token={WebUtility.UrlEncode(token)}");
-            //await jsRuntime.InvokeVoidAsync("open", resetUrl.ToString(), "_blank");
         }
     }
 
@@ -99,7 +101,7 @@
     {
         if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(email))
         {
-            messageError = $"Email or password cannot be empty.";
+            isError = true; msg = $"Email or password cannot be empty.";
             StateHasChanged();
             return;
         }
@@ -107,7 +109,7 @@
         var user = await userManager.FindByEmailAsync(email);
         if (user != null)
         {
-            messageError = $"User already exist with email '{email}'";
+            isError = true;  msg = $"User already exist with email '{email}'";
             StateHasChanged();
             return;
         }
@@ -117,11 +119,11 @@
         var identityResult = await userManager.CreateAsync(user, password);
         if (!identityResult.Succeeded)
         {
-            messageError = string.Join(',', identityResult.Errors.Select(x => x.Description));            
+            msg = string.Join(',', identityResult.Errors.Select(x => x.Description));  isError = false;
             StateHasChanged();
             return;
         }
-        messageSuccess = $"User created";
+        msg = $"User created"; isError = false;
         ResetForm();
         FetchUsers();
         StateHasChanged();

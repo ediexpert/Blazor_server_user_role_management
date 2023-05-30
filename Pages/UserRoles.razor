@@ -1,5 +1,7 @@
-﻿@page "/roles"
+﻿@page "/user/{userName}"
 
+@using EMS.Amaanat.Web.Data.Helpers;
+@using EMS.Amaanat.Web.Models;
 @using Microsoft.AspNetCore.Identity
 @using System.Linq;
 @using EMS.Amaanat.Web.Data
@@ -10,59 +12,118 @@
 
 
 <h3>UserRoles</h3>
+<MessageComponent IsError=isError Message="@msg"></MessageComponent>
 
-@if (!string.IsNullOrEmpty(messageSuccess))
+<p>This page will be used to manage user and respectove roles</p>
+@if (user != null)
 {
-    <p style="color: green">@messageSuccess</p>
-}
-@if (!string.IsNullOrEmpty(messageError))
-{
-    <p style="color: red">@messageError</p>
-}
-
-<p>This page will be used to manage roles for the app users</p>
-
-
-@if (roles.Count() > 0)
-{
-    @foreach (var role in roles)
+    <div class="form-group row">
+        <label for="name" class="col-sm-2 col-form-label">Name</label>
+        <div class="col-sm-10">
+            <input type="text" class="form-control-plaintext" id="name" placeholder="John Doe" @bind="user.UserName">
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="staticEmail" class="col-sm-2 col-form-label">Email</label>
+        <div class="col-sm-10">
+            <input type="email" class="form-control" id="staticEmail" placeholder="email@example.com" @bind="user.Email">
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
+        <div class="col-sm-10">
+            <input type="password" class="form-control" id="inputPassword" placeholder="Password" @bind="password">
+        </div>
+    </div>
+    <div class="form-group row">
+        <label for="checkConfirmed" class="col-sm-2 col-form-label">Confirmed</label>
+        <div class="col-sm-10">
+            <input type="checkbox" class="form-check-input" id="checkConfirmed"  value="@user.EmailConfirmed">
+        </div>
+    </div>
+    @if (roles.Count() > 0)
     {
-        <li>@role</li>
+        <div class="form-group row">
+            <label class="col-sm-2 col-form-label">Roles</label>
+            <div class="col-sm-10">
+                @foreach (var role in roles)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="flexCheckDefault-@role.Name" checked=@usrRoles.Contains(role.Name) @onchange="eventArgs => { RoleClicked(role, eventArgs.Value); }">
+                        <label class="form-check-label" for="flexCheckDefault-@role.Name">
+                            @role.Name
+                        </label>
+                    </div>
+                }
+            </div>
+        </div>
     }
+    else
+    {
+        <p>No roles available in the applocation</p>
+    }
+
+    <button class="btn btn-primary" @onclick="UpdateUser">Update User</button>
 }
-else
-{
-    <p>No roles available in the applocation</p>
-}
-<input type="text" placeholder="please enter role name to add a role" @bind="roleName"/>
-<button @onclick="AddRole">Add role</button>
 
 @code {
-    string messageSuccess = string.Empty;
-    string messageError = string.Empty;
+
+    [Parameter]
+    public string? UserName { get; set; }
+
+    IdentityUser user;
+    string password;
+    List<string> usrRoles = new List<string>();
     IEnumerable<IdentityRole> roles = Enumerable.Empty<IdentityRole>();
     string roleName = string.Empty;
-    protected override void OnInitialized()
+    bool isError = false;
+    string msg = null;
+    protected override async Task OnInitializedAsync()
     {
-        //roleManager = null;
-        roles = roleManager.Roles.ToList();
-    }
-
-    async Task AddRole()
-    {
-        if (string.IsNullOrEmpty(roleName))
+        if (string.IsNullOrEmpty(UserName))
             return;
 
-        IdentityRole identityRole = await roleManager.FindByNameAsync(roleName);
-        if (identityRole == null)
+        user = await userManager.FindByNameAsync(UserName);
+        if(user != null)
+            usrRoles = Task.Run(async () => await userManager.GetRolesAsync(user)).Result?.ToList();
+        FetchRoles();
+    }
+
+
+    async void FetchRoles()
+    {
+        roles = dbContext.Roles.ToList();
+
+    }
+
+    async void UpdateUser()
+    {
+
+        foreach (var item in roles)
         {
-            roleName = roleName.Trim().ToUpper();
-            identityRole = new IdentityRole(roleName);
-            var identityResult = await roleManager.CreateAsync(identityRole);
-            if (identityResult.Succeeded)
-            {                
-                messageSuccess = $"Role({roleName}) created";
-            }
+            await userManager.RemoveFromRoleAsync(user, item.Name);
+        }    
+
+        foreach (var role in usrRoles)
+        {
+            await userManager.AddToRoleAsync(user, role);
         }
+        StateHasChanged();
+    }
+    void RoleClicked(IdentityRole role, object checkedValue)
+    {
+        string action = string.Empty;
+        if ((bool)checkedValue && !usrRoles.Contains(role.Name))
+        {
+            usrRoles.Add(role.Name);
+            msg = $"Role({role.Name}) added";
+        }
+        if (!(bool)checkedValue && usrRoles.Contains(role.Name))
+        {
+            usrRoles.Remove(role.Name);
+            msg = $"Role({role.Name}) removed";
+            isError = true;
+        }
+        StateHasChanged();
     }
 }

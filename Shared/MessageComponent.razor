@@ -1,0 +1,14 @@
+﻿@if(Message != null)
+{
+    <p style="color:@color">@Message</p>
+}
+
+@code {
+    [Parameter]
+    public bool IsError { get; set; } = false;
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    string color => IsError ? "red" : "green";
+}

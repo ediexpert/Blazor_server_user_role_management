@@ -1,0 +1,70 @@
+﻿@page "/roles"
+
+@using EMS.Amaanat.Web.Data.Helpers;
+@using EMS.Amaanat.Web.Models;
+@using Microsoft.AspNetCore.Identity
+@using System.Linq;
+@using EMS.Amaanat.Web.Data
+@inject ApplicationDbContext dbContext
+@inject RoleManager<IdentityRole> roleManager
+@inject UserManager<IdentityUser> userManager
+
+
+
+<h3>UserRoles</h3>
+<MessageComponent IsError=isError Message="@msg"></MessageComponent>
+
+<p>This page will be used to manage roles for the app users</p>
+
+
+@if (roles.Count() > 0)
+{
+    @foreach (var role in roles)
+    {
+        <li>
+            @role.Id - @role.Name
+            <button @onclick="() => Delete(role)">Delete</button>
+        </li>
+    }
+}
+else
+{
+    <p>No roles available in the applocation</p>
+}
+<input type="text" placeholder="please enter role name to add a role" @bind="roleName" />
+<button @onclick="AddRole">Add role</button>
+
+@code {
+    IEnumerable<IdentityRole> roles = Enumerable.Empty<IdentityRole>();
+    string roleName = string.Empty;
+    bool isError = false;
+    string msg = null;
+    protected override void OnInitialized()
+    {
+        FetchRoles();
+
+    }
+    void FetchRoles()
+    {
+        roles = dbContext.Roles.ToList();
+    }
+
+    void AddRole()
+    {
+        if (string.IsNullOrEmpty(roleName))
+            return;
+        Result result = RoleHelper.CreateRole(dbContext, roleName);
+        isError = !result.IsSuccess;
+        msg = result.Message;
+        roleName = string.Empty;
+        FetchRoles();
+        StateHasChanged();
+    }
+
+    async Task Delete(IdentityRole role)
+    {
+        await RoleHelper.RemoveRole(dbContext, role);
+        FetchRoles();
+        StateHasChanged();
+    }
+}
