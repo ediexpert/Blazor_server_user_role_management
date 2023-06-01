@@ -1,5 +1,6 @@
 using EMS.Amaanat.Web.Areas.Identity;
 using EMS.Amaanat.Web.Data;
+using EMS.Amaanat.Web.Seeder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
@@ -34,6 +35,7 @@ else
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+app.SeedRolesAndAdminUser(); // to seed the roles and admin user
 
 app.UseHttpsRedirection();
 
